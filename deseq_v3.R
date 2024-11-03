@@ -47,11 +47,10 @@ plot_title <- "HSC_vehicle_vs_GMP_vehicle"
 
 ribo <- read.delim(ribo_file) 
 rna <- read.delim(rna_file)
+genes <- rna[, "reference"]
 
 merge <- cbind(ribo, rna)
 subset <- merge[, comparison]
-
-genes <- ribo[, "transcript"]
 
 colData <- get_coldata(subset)
 if (length(unique(as.character(colData$Population))) > 1 &
@@ -75,7 +74,7 @@ res <- lfcShrink(dds, coef=4,res=res,type="apeglm")
 summary(res)
 
 # vsd <- vst(dds, blind=FALSE)
-# pca_plot <- plotPCA(vsd, intgroup=c("Population", "LibraryType", "Condition"), 
+# pca_plot <- plotPCA(vsd, intgroup=c("Population", "LibraryType", "Condition"),
 #                     returnData=TRUE)
 # pca_plot$Group <- interaction(pca_plot$Population, pca_plot$LibraryType, pca_plot$Condition)
 # ggplot(pca_plot, aes(x=PC1, y=PC2, color=Group)) +
@@ -100,8 +99,6 @@ summary(res)
 #                 y = 'pvalue')
 
 # plotMA(res)
-
-res$gene <- genes
 
 # Ribo
 ribo_comparison <- comparison[comparison %like% "RIBO"]
