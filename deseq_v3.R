@@ -39,11 +39,13 @@ comparisons <- list(
 )
 
 
-ribo_file <- "//wsl$/Ubuntu/home/reiko/riboseq/ribo_counts.txt"
-rna_file <- "//wsl$/Ubuntu/home/reiko/riboseq/rna_counts.txt"
-comparison <- c(comparisons$HSC_vehicle_vs_GMP_vehicle$RIBO, 
-                comparisons$HSC_vehicle_vs_GMP_vehicle$RNA)
-plot_title <- "HSC_vehicle_vs_GMP_vehicle"
+# ribo_file <- "//wsl$/Ubuntu/home/reiko/riboseq/ribo_counts.txt"
+# rna_file <- "//wsl$/Ubuntu/home/reiko/riboseq/rna_counts.txt"
+ribo_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/ribo_counts.txt"
+rna_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/rna_counts.txt"
+comparison <- c(comparisons$GMP_Ven_vs_GMP_vehicle$RIBO, 
+                comparisons$GMP_Ven_vs_GMP_vehicle$RNA)
+plot_title <- "GMP_Ven_vs_GMP_vehicle"
 
 ribo <- read.delim(ribo_file) 
 rna <- read.delim(rna_file)
@@ -70,6 +72,10 @@ if (length(unique(as.character(colData$Population))) > 1 &
 
 dds <- DESeq(dds)
 res <- results(dds)
+row.names(res) <- genes
+# write.csv(res, 
+#           paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/res_", plot_title, ".csv"),
+#           row.names = TRUE)
 res <- lfcShrink(dds, coef=4,res=res,type="apeglm")
 summary(res)
 
