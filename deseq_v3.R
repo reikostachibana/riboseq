@@ -2,6 +2,8 @@ library(data.table)
 library(DESeq2)
 library(ggplot2)
 library(EnhancedVolcano)
+library(topGO)
+library(org.Mm.eg.db)
 
 get_coldata <- function(counts_df){
   coldata <- data.frame(colnames(counts_df), colnames(counts_df))
@@ -35,46 +37,40 @@ comparisons <- list(
   HSC_vehicle_vs_GMP_vehicle = list(
     RIBO = c("RIBO_HSC_vehicle_A", "RIBO_HSC_vehicle_B", "RIBO_GMP_vehicle_A", "RIBO_GMP_vehicle_B"),
     RNA = c("RNA_HSC_vehicle_A", "RNA_HSC_vehicle_B", "RNA_GMP_vehicle_A", "RNA_GMP_vehicle_B")
-  ),
-  HSC_Ven_vs_GMP_vehicle = list(
-    RIBO = c("RIBO_HSC_Ven_A", "RIBO_HSC_Ven_B", "RIBO_GMP_vehicle_A", "RIBO_GMP_vehicle_B"),
-    RNA = c("RNA_HSC_Ven_A", "RNA_HSC_Ven_B", "RNA_GMP_vehicle_A", "RNA_GMP_vehicle_B")
   )
 )
 
+comparison <- c(comparisons$HSC_vehicle_vs_GMP_vehicle$RIBO, 
+                comparisons$HSC_vehicle_vs_GMP_vehicle$RNA)
+plot_title <- "HSC_vehicle_vs_GMP_vehicle"
 
-# ribo_file <- "//wsl$/Ubuntu/home/reiko/riboseq/ribo_counts.txt"
-# rna_file <- "//wsl$/Ubuntu/home/reiko/riboseq/rna_counts.txt"
+################################################################################
+# Run TE DESeq
+################################################################################
+
+# Get RPF and RNA counts
 ribo_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/ribo_counts.txt"
 rna_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/rna_counts.txt"
-comparison <- c(comparisons$HSC_Ven_vs_HSC_vehicle$RIBO, 
-                comparisons$HSC_Ven_vs_HSC_vehicle$RNA)
-plot_title <- "HSC_Ven_vs_HSC_vehicle"
-
-# ribo <- read.table(ribo_file, sep = "\t") 
-# colnames(ribo) <- ribo[1,]
-# ribo <- ribo[-1,]
-# rownames(ribo) <- ribo[,1]
-# ribo <- ribo[,-1]
-# for(i in 1:ncol(ribo)){
-#   ribo[,i] <- as.numeric(ribo[,i])
-# }
+# ribo_file <- "//wsl$/Ubuntu/home/reiko/riboseq/ribo_counts.txt"
+# rna_file <- "//wsl$/Ubuntu/home/reiko/riboseq/rna_counts.txt"
 
 ribo <- read.delim(ribo_file)
 rownames(ribo) <- ribo$gene
 ribo <- ribo[, -1]
-# ribo <- as.data.frame(sapply(ribo, as.numeric))
-# ribo <- ribo[rowSums(ribo >= 10) >= 2, ]
   
 rna <- read.delim(rna_file)
 rownames(rna) <- rna$gene
 rna <- rna[, -1]
-# rna <- as.data.frame(sapply(rna, as.numeric))
-# rna <- rna[rowSums(rna >= 10) >= 2, ]
+
+# Filter RPF and RNA counts
+ribo <- ribo[rowSums(ribo >= 10) >= 2, ] # 8210 genes
+rna <- rna[rowSums(rna >= 10) >= 2, ]
+common_genes <- intersect(rownames(ribo), rownames(rna))
+ribo <- ribo[common_genes, ] # 8205 genes 
+rna <- rna[common_genes, ]
 
 merge <- cbind(ribo, rna)
-filtered <- merge[rowSums(merge >= 10) >= 2, ]
-subset <- filtered[, comparison]
+subset <- merge[, comparison]
 
 colData <- get_coldata(subset)
 if (length(unique(as.character(colData$Population))) > 1 &
@@ -89,9 +85,6 @@ if (length(unique(as.character(colData$Population))) > 1 &
                                 design = ~ Condition + LibraryType + Condition:LibraryType)
 }
 
-# keep <- rowSums(counts(dds) >= 10) >= 2
-# dds <- dds[keep,]
-
 dds <- DESeq(dds)
 res <- results(dds)
 # write.csv(res, 
@@ -100,37 +93,15 @@ res <- results(dds)
 res <- lfcShrink(dds, coef=4,res=res,type="apeglm")
 summary(res)
 
-# vsd <- vst(dds, blind=FALSE)
-# pca_plot <- plotPCA(vsd, intgroup=c("Population", "LibraryType", "Condition"),
-#                     returnData=TRUE)
-# pca_plot$Group <- interaction(pca_plot$Population, pca_plot$LibraryType, pca_plot$Condition)
-# ggplot(pca_plot, aes(x=PC1, y=PC2, color=Group)) +
-#   geom_point(size=5) +
-#   xlab(paste0("PC1: ", round(attr(pca_plot, "percentVar")[1], 2), "variance")) +
-#   ylab(paste0("PC2: ", round(attr(pca_plot, "percentVar")[2], 2), "variance")) +
-#   ggtitle(plot_title) + 
-#   theme_minimal() +
-#   theme(legend.position = "right",
-#         plot.title = element_text(size=20),
-#         axis.title.x = element_text(size=16),
-#         axis.title.y = element_text(size=16),
-#         axis.text.x = element_text(size=14),
-#         axis.text.y = element_text(size=14),
-#         legend.title = element_text(size=16),
-#         legend.text = element_text(size=14))
-
-# res$gene <- genes
 # EnhancedVolcano(res,
 #                 lab = res$gene,
 #                 x = 'log2FoldChange',
 #                 y = 'pvalue')
 
-# plotMA(res)
-
 # Ribo
 ribo_comparison <- comparison[comparison %like% "RIBO"]
 ribo <- ribo[, ribo_comparison]
-ribo <- ribo[rownames(ribo) %in% rownames(filtered), ]
+# ribo <- ribo[rownames(ribo) %in% rownames(filtered), ]
 coldata_ribo <- get_coldata(ribo)
 
 if (length(unique(as.character(coldata_ribo$Population))) > 1) {
@@ -170,7 +141,7 @@ res_ribo <- lfcShrink(ddsMat_ribo, coef=2,res=res_ribo,type="apeglm")
 # RNA 
 rna_comparison <- comparison[comparison %like% "RNA"]
 rna <- rna[, rna_comparison]
-rna <- rna[rownames(rna) %in% rownames(filtered), ]
+# rna <- rna[rownames(rna) %in% rownames(filtered), ]
 coldata_rna <- get_coldata(rna)
 
 if (length(unique(as.character(coldata_rna$Population))) > 1) {
@@ -220,18 +191,17 @@ logFC$Group <- ifelse(res$padj < 0.05 & res_ribo$padj > 0.05 & res_rna$padj < 0.
 
 logFC <- na.omit(logFC)
 
-
-ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) + 
+ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) +
   geom_point() +
-  geom_text(data = logFC[(logFC$Group == "Forwarded" | logFC$Group == "Exclusive" | 
-                            logFC$Group == "Intensified") | logFC$Group == "Buffered" | 
-                           logFC$Group == "Buffered (Special)", ], 
-            aes(label = Gene), vjust = -0.5, check_overlap = TRUE) + 
-  scale_color_manual(values = c("Forwarded" = "blue", 
+  geom_text(data = logFC[(logFC$Group == "Forwarded" | logFC$Group == "Exclusive" |
+                            logFC$Group == "Intensified") | logFC$Group == "Buffered" |
+                           logFC$Group == "Buffered (Special)", ],
+            aes(label = Gene), vjust = -0.5, check_overlap = TRUE) +
+  scale_color_manual(values = c("Forwarded" = "blue",
                                 "Exclusive" = "darkgreen",
-                                "Intensified" = "red", 
+                                "Intensified" = "red",
                                 "Buffered" = "magenta",
-                                "Buffered (Special)" = "orange", 
+                                "Buffered (Special)" = "orange",
                                 "No change" = "grey")) +
   labs(title = plot_title) +
   theme(legend.position = "right",
@@ -241,11 +211,9 @@ ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) +
         axis.text.x = element_text(size=14),
         axis.text.y = element_text(size=14),
         legend.title = element_text(size=16),
-        legend.text = element_text(size=14))
-  # ylim(-5, 5) +
-  # xlim(-5, 5)
-
-
+        legend.text = element_text(size=14)) +
+  ylim(-15, 4) +
+  xlim(-15, 4)
 
 # res[res$gene %like% "Atf4", ]
 # res[res$gene %like% "G3bp1", ]
@@ -255,31 +223,31 @@ ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) +
 # res[res$gene %like% "Erg", ]
 # res[res$gene %like% "Adam9", ]
 # res[res$gene %like% "Akt3", ]
-
 # res_temp <- results(dds, name = "PopulationHSC.LibraryTypeRibo")
 # res_temp[res_temp$gene %like% "Alox5", ]
 
+# plotMA(res, main=plot_title)
 
-# comparison <- c(comparisons$HSC_Ven_vs_HSC_vehicle$RIBO,
-#                 comparisons$GMP_Ven_vs_GMP_vehicle$RIBO)
-#   # comparisons$HSC_Ven_vs_HSC_vehicle$RNA,
-#   # comparisons$GMP_Ven_vs_GMP_vehicle$RNA)
-# 
-# 
-# dds <- DESeqDataSetFromMatrix(countData = subset,
-#                               colData = colData,
-#                               design = ~ Population + Condition + Population:Condition)
-# ggplot(pca_plot, aes(x=PC1, y=PC2, color=Group)) +
-#   geom_point(size=5) +
-#   xlab(paste0("PC1: ", round(attr(pca_plot, "percentVar")[1], 2), " variance")) +
-#   ylab(paste0("PC2: ", round(attr(pca_plot, "percentVar")[2], 2), " variance")) +
-#   ggtitle("Ribo Samples") +
-#   theme_minimal() +
-#   theme(legend.position = "right",
-#         plot.title = element_text(size=20),
-#         axis.title.x = element_text(size=16),
-#         axis.title.y = element_text(size=16),
-#         axis.text.x = element_text(size=14),
-#         axis.text.y = element_text(size=14),
-#         legend.title = element_text(size=16),
-#         legend.text = element_text(size=14))
+group <- "Forwarded"
+gene_list <- ifelse(logFC$Group == group & logFC$Input_logFC > 0,
+                    1, 0)
+names(gene_list) <- logFC$Gene
+
+GOdata <- new("topGOdata",
+              ontology = "BP",  
+              allGenes = gene_list,
+              geneSelectionFun = function(x) x == 1,
+              annot = annFUN.org,
+              mapping = "org.Mm.eg.db",
+              ID = "symbol")
+
+resultFisher <- runTest(GOdata, algorithm = "classic", statistic = "fisher")
+
+allRes <- GenTable(GOdata, classicFisher = resultFisher)
+allRes
+
+par(cex=0.5)
+showSigOfNodes(GOdata, score(resultFisher), firstSigNodes = 3, useInfo = "all")
+title(main = paste0(plot_title, " - ", group, " - logFC > 0"),
+      cex.main = 3,
+      line = -2)
