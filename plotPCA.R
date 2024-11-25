@@ -50,8 +50,8 @@ comparisons <- list(
 # rna_file <- "//wsl$/Ubuntu/home/reiko/riboseq/rna_counts.txt"
 ribo_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/ribo_counts.txt"
 rna_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/rna_counts.txt"
-comparison <- c(comparisons$HSC_Ven_vs_HSC_vehicle$RIBO,
-                comparisons$GMP_Ven_vs_GMP_vehicle$RIBO)
+comparison <- c(comparisons$HSC_Ven_vs_HSC_vehicle$RNA,
+                comparisons$GMP_Ven_vs_GMP_vehicle$RNA)
 # comparisons$HSC_Ven_vs_HSC_vehicle$RNA,
 # comparisons$GMP_Ven_vs_GMP_vehicle$RNA)
 
@@ -83,7 +83,7 @@ ggplot(pca_plot, aes(x=PC1, y=PC2, color=Group)) +
   geom_point(size=5) +
   xlab(paste0("PC1: ", round(attr(pca_plot, "percentVar")[1], 2), " variance")) +
   ylab(paste0("PC2: ", round(attr(pca_plot, "percentVar")[2], 2), " variance")) +
-  ggtitle("Ribo Samples") +
+  ggtitle("RNA Samples") +
   theme_minimal() +
   theme(legend.position = "right",
         plot.title = element_text(size=20),

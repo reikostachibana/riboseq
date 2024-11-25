@@ -14,9 +14,12 @@ get_coldata <- function(counts_df){
   coldata$Population[coldata$SampleNames %like% "GMP"] <- "GMP"
   coldata$LibraryType <- "Input"
   coldata$LibraryType[coldata$SampleNames %like% "RIBO"] <- "Ribo"
+  # coldata$Length <- 28
+  # coldata$Length[coldata$SampleNames %like% "1"] <- 21
   coldata$Population <- factor(coldata$Population, levels = c("GMP", "HSC"))
   coldata$Condition <- factor(coldata$Condition, levels = c("Vehicle", "Ven"))
   coldata$LibraryType <- factor(coldata$LibraryType, levels = c("Input", "Ribo"))
+  # coldata$Length <- factor(coldata$Length, levels = c(28, 21))
   
   return (coldata)
 }
@@ -55,7 +58,7 @@ rna_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/rna_counts.txt"
 # rna_file <- "//wsl$/Ubuntu/home/reiko/riboseq/rna_counts.txt"
 
 ribo <- read.delim(ribo_file)
-rownames(ribo) <- ribo$gene
+rownames(ribo) <- ribo$transcript
 ribo <- ribo[, -1]
   
 rna <- read.delim(rna_file)
@@ -63,10 +66,10 @@ rownames(rna) <- rna$gene
 rna <- rna[, -1]
 
 # Filter RPF and RNA counts
-ribo <- ribo[rowSums(ribo >= 10) >= 2, ] # 8210 genes
+ribo <- ribo[rowSums(ribo >= 10) >= 4, ] # 8400 genes
 rna <- rna[rowSums(rna >= 10) >= 2, ]
 common_genes <- intersect(rownames(ribo), rownames(rna))
-ribo <- ribo[common_genes, ] # 8205 genes 
+ribo <- ribo[common_genes, ] # 8395 genes 
 rna <- rna[common_genes, ]
 
 merge <- cbind(ribo, rna)
@@ -83,20 +86,29 @@ if (length(unique(as.character(colData$Population))) > 1 &
   dds <- DESeqDataSetFromMatrix(countData = subset,
                                 colData = colData,
                                 design = ~ Condition + LibraryType + Condition:LibraryType)
+} else if (length(unique(as.character(colData$Length))) > 1 &
+           length(unique(as.character(colData$LibraryType))) > 1){
+  dds <- DESeqDataSetFromMatrix(countData = subset,
+                                colData = colData,
+                                design = ~ Length + LibraryType + Length:LibraryType)
 }
 
 dds <- DESeq(dds)
 res <- results(dds)
-# write.csv(res, 
-#           paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/res_", plot_title, ".csv"),
-#           row.names = TRUE)
 res <- lfcShrink(dds, coef=4,res=res,type="apeglm")
 summary(res)
+write.csv(res,
+          paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/DESeq_TE_", plot_title, ".csv"),
+          row.names = TRUE)
 
 # EnhancedVolcano(res,
 #                 lab = res$gene,
 #                 x = 'log2FoldChange',
 #                 y = 'pvalue')
+
+################################################################################
+# logFC RPF vs mRNA
+################################################################################
 
 # Ribo
 ribo_comparison <- comparison[comparison %like% "RIBO"]
@@ -117,12 +129,18 @@ if (length(unique(as.character(coldata_ribo$Population))) > 1) {
   ddsMat_rna <- DESeqDataSetFromMatrix(countData = ribo,
                                        colData = coldata_ribo, 
                                        design = ~ Condition + Population + Condition:Population)
+} else if (length(unique(as.character(coldata_ribo$Length))) > 1){
+  ddsMat_ribo <- DESeqDataSetFromMatrix(countData = ribo,
+                                        colData = coldata_ribo,
+                                        design = ~ Length)
 }
-
 
 ddsMat_ribo <- DESeq(ddsMat_ribo)
 res_ribo <- results(ddsMat_ribo)
 res_ribo <- lfcShrink(ddsMat_ribo, coef=2,res=res_ribo,type="apeglm") 
+write.csv(res_ribo,
+          paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/DESeq_ribo_", plot_title, ".csv"),
+          row.names = TRUE)
 
 # Get
 # ribo_df <- data.frame(Ribo_log_baseMean = log10(res_ribo$baseMean),
@@ -162,6 +180,10 @@ if (length(unique(as.character(coldata_rna$Population))) > 1) {
 ddsMat_rna <- DESeq(ddsMat_rna)
 res_rna <- results(ddsMat_rna)
 res_rna <- lfcShrink(ddsMat_rna, coef=2,res=res_rna,type="apeglm")
+write.csv(res_rna,
+          paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/DESeq_rna_", plot_title, ".csv"),
+          row.names = TRUE)
+
 # input_df <- data.frame(Input_baseMean = res_rna$baseMean,
 #                        Input_logFC = res_rna$log2FoldChange)
 # ggplot(input_df, aes(x=Input_baseMean, y=Input_logFC)) + 
@@ -191,6 +213,9 @@ logFC$Group <- ifelse(res$padj < 0.05 & res_ribo$padj > 0.05 & res_rna$padj < 0.
 
 logFC <- na.omit(logFC)
 
+# write.csv(logFC, paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/", plot_title, "_results.csv"),
+#           row.names = FALSE)
+
 ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) +
   geom_point() +
   geom_text(data = logFC[(logFC$Group == "Forwarded" | logFC$Group == "Exclusive" |
@@ -211,9 +236,9 @@ ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) +
         axis.text.x = element_text(size=14),
         axis.text.y = element_text(size=14),
         legend.title = element_text(size=16),
-        legend.text = element_text(size=14)) +
-  ylim(-15, 4) +
-  xlim(-15, 4)
+        legend.text = element_text(size=14))
+#   ylim(-15, 4) +
+#   xlim(-15, 4)
 
 # res[res$gene %like% "Atf4", ]
 # res[res$gene %like% "G3bp1", ]
@@ -226,10 +251,15 @@ ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) +
 # res_temp <- results(dds, name = "PopulationHSC.LibraryTypeRibo")
 # res_temp[res_temp$gene %like% "Alox5", ]
 
-# plotMA(res, main=plot_title)
 
+table(logFC$Group)
+
+################################################################################
+# GO Analysis
+################################################################################
+  
 group <- "Forwarded"
-gene_list <- ifelse(logFC$Group == group & logFC$Input_logFC > 0,
+gene_list <- ifelse(logFC$Group == group & logFC$Ribo_logFC < 0,
                     1, 0)
 names(gene_list) <- logFC$Gene
 
@@ -246,8 +276,10 @@ resultFisher <- runTest(GOdata, algorithm = "classic", statistic = "fisher")
 allRes <- GenTable(GOdata, classicFisher = resultFisher)
 allRes
 
-par(cex=0.5)
-showSigOfNodes(GOdata, score(resultFisher), firstSigNodes = 3, useInfo = "all")
-title(main = paste0(plot_title, " - ", group, " - logFC > 0"),
-      cex.main = 3,
-      line = -2)
+sum(gene_list)
+
+# par(cex=0.5)
+# showSigOfNodes(GOdata, score(resultFisher), firstSigNodes = 3, useInfo = "all")
+# title(main = paste0(plot_title, " - ", group, " - logFC > 0"),
+#       cex.main = 3,
+#       line = -2)
