@@ -52,8 +52,8 @@ plot_title <- "HSC_vehicle_vs_GMP_vehicle"
 ################################################################################
 
 # Get RPF and RNA counts
-ribo_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/ribo_counts.txt"
-rna_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/rna_counts.txt"
+ribo_file <- "/Users/reikotachibana/Documents/ChungLab/riboseq/ribo_counts.txt"
+rna_file <- "/Users/reikotachibana/Documents/ChungLab/riboseq/rna_counts.txt"
 # ribo_file <- "//wsl$/Ubuntu/home/reiko/riboseq/ribo_counts.txt"
 # rna_file <- "//wsl$/Ubuntu/home/reiko/riboseq/rna_counts.txt"
 
@@ -97,9 +97,9 @@ dds <- DESeq(dds)
 res <- results(dds)
 res <- lfcShrink(dds, coef=4,res=res,type="apeglm")
 summary(res)
-write.csv(res,
-          paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/DESeq_TE_", plot_title, ".csv"),
-          row.names = TRUE)
+# write.csv(res,
+#           paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/DESeq_TE_", plot_title, ".csv"),
+#           row.names = TRUE)
 
 # EnhancedVolcano(res,
 #                 lab = res$gene,
@@ -138,9 +138,9 @@ if (length(unique(as.character(coldata_ribo$Population))) > 1) {
 ddsMat_ribo <- DESeq(ddsMat_ribo)
 res_ribo <- results(ddsMat_ribo)
 res_ribo <- lfcShrink(ddsMat_ribo, coef=2,res=res_ribo,type="apeglm") 
-write.csv(res_ribo,
-          paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/DESeq_ribo_", plot_title, ".csv"),
-          row.names = TRUE)
+# write.csv(res_ribo,
+#           paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/DESeq_ribo_", plot_title, ".csv"),
+#           row.names = TRUE)
 
 # Get
 # ribo_df <- data.frame(Ribo_log_baseMean = log10(res_ribo$baseMean),
@@ -180,9 +180,9 @@ if (length(unique(as.character(coldata_rna$Population))) > 1) {
 ddsMat_rna <- DESeq(ddsMat_rna)
 res_rna <- results(ddsMat_rna)
 res_rna <- lfcShrink(ddsMat_rna, coef=2,res=res_rna,type="apeglm")
-write.csv(res_rna,
-          paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/DESeq_rna_", plot_title, ".csv"),
-          row.names = TRUE)
+# write.csv(res_rna,
+#           paste0("/Users/reikotachibana/Documents/Chung Lab/riboseq/output/DESeq_rna_", plot_title, ".csv"),
+#           row.names = TRUE)
 
 # input_df <- data.frame(Input_baseMean = res_rna$baseMean,
 #                        Input_logFC = res_rna$log2FoldChange)
@@ -251,6 +251,10 @@ ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) +
 # res_temp <- results(dds, name = "PopulationHSC.LibraryTypeRibo")
 # res_temp[res_temp$gene %like% "Alox5", ]
 
+posForwarded <- logFC[logFC$Group == "Forwarded" & logFC$Input_logFC > 0, "Gene"]
+writeLines(posForwarded, paste0("/Users/reikotachibana/Documents/ChungLab/riboseq/output/genes_list/", plot_title, "_posForwarded.txt"))
+negForwarded <- logFC[logFC$Group == "Forwarded" & logFC$Input_logFC < 0, "Gene"]
+writeLines(negForwarded, paste0("/Users/reikotachibana/Documents/ChungLab/riboseq/output/genes_list/", plot_title, "_negForwarded.txt"))
 
 table(logFC$Group)
 
