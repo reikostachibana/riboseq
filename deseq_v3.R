@@ -43,17 +43,19 @@ comparisons <- list(
   )
 )
 
-comparison <- c(comparisons$GMP_Ven_vs_GMP_vehicle$RIBO, 
-                comparisons$GMP_Ven_vs_GMP_vehicle$RNA)
-plot_title <- "GMP_Ven_vs_GMP_vehicle"
+comparison <- c(comparisons$HSC_Ven_vs_HSC_vehicle$RIBO, 
+                comparisons$HSC_Ven_vs_HSC_vehicle$RNA)
+plot_title <- "HSC_Ven_vs_HSC_vehicle"
 
 ################################################################################
 # Run TE DESeq
 ################################################################################
 
 # Get RPF and RNA counts
-ribo_file <- "/Users/reikotachibana/Documents/ChungLab/riboseq/ribo_counts.txt"
-rna_file <- "/Users/reikotachibana/Documents/ChungLab/riboseq/rna_counts.txt"
+# ribo_file <- "/Users/reikotachibana/Documents/ChungLab/riboseq/ribo_counts.txt"
+# rna_file <- "/Users/reikotachibana/Documents/ChungLab/riboseq/rna_counts.txt"
+ribo_file <- "/Users/Reiko/Documents/riboseq/ribo_counts.txt"
+rna_file <- "/Users/Reiko/Documents/riboseq/rna_counts.txt"
 # ribo_file <- "//wsl$/Ubuntu/home/reiko/riboseq/ribo_counts.txt"
 # rna_file <- "//wsl$/Ubuntu/home/reiko/riboseq/rna_counts.txt"
 
@@ -239,6 +241,26 @@ ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) +
         legend.text = element_text(size=14))
 #   ylim(-15, 4) +
 #   xlim(-15, 4)
+
+logFC$Gene <- toupper(logFC$Gene)
+ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) +
+  geom_point() +
+  geom_text(data = logFC[logFC$Gene %in% unique_genes, ],
+            aes(label = Gene), vjust = -0.5, check_overlap = TRUE) +
+  scale_color_manual(values = c("Forwarded" = "blue",
+                                "Exclusive" = "darkgreen",
+                                "Intensified" = "red",
+                                "Buffered" = "magenta",
+                                "Buffered (Special)" = "orange",
+                                "No change" = "grey")) +
+  theme(legend.position = "right",
+        plot.title = element_text(size=20),
+        axis.title.x = element_text(size=16),
+        axis.title.y = element_text(size=16),
+        axis.text.x = element_text(size=14),
+        axis.text.y = element_text(size=14),
+        legend.text = element_text(size=14))
+
 
 # res[res$gene %like% "Atf4", ]
 # res[res$gene %like% "G3bp1", ]
