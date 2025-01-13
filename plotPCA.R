@@ -48,12 +48,13 @@ comparisons <- list(
 
 # ribo_file <- "//wsl$/Ubuntu/home/reiko/riboseq/ribo_counts.txt"
 # rna_file <- "//wsl$/Ubuntu/home/reiko/riboseq/rna_counts.txt"
-ribo_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/ribo_counts.txt"
-rna_file <- "/Users/reikotachibana/Documents/Chung Lab/riboseq/rna_counts.txt"
-comparison <- c(comparisons$HSC_Ven_vs_HSC_vehicle$RNA,
+ribo_file <- "/Users/reikotachibana/Documents/ChungLab/riboseq/ribo_counts.txt"
+rna_file <- "/Users/reikotachibana/Documents/ChungLab/riboseq/rna_counts.txt"
+comparison <- c(comparisons$HSC_Ven_vs_HSC_vehicle$RNA, 
                 comparisons$GMP_Ven_vs_GMP_vehicle$RNA)
-# comparisons$HSC_Ven_vs_HSC_vehicle$RNA,
-# comparisons$GMP_Ven_vs_GMP_vehicle$RNA)
+  # comparisons$HSC_Ven_vs_HSC_vehicle$RIBO,
+  #               comparisons$GMP_Ven_vs_GMP_vehicle$RIBO)
+
 
 ribo <- read.delim(ribo_file)
 rownames(ribo) <- ribo$gene
@@ -75,21 +76,21 @@ dds <- DESeq(dds)
 res <- results(dds)
 
 vsd <- vst(dds, blind=FALSE)
-pca_plot <- plotPCA(vsd, intgroup=c("Population", "LibraryType", "Condition"),
+pca_plot <- plotPCA(vsd, intgroup=c("Population", "Condition"),
                     returnData=TRUE)
-pca_plot$Group <- interaction(pca_plot$Population, pca_plot$LibraryType, pca_plot$Condition)
+pca_plot$Group <- interaction(pca_plot$Population, pca_plot$Condition)
 
 ggplot(pca_plot, aes(x=PC1, y=PC2, color=Group)) +
   geom_point(size=5) +
   xlab(paste0("PC1: ", round(attr(pca_plot, "percentVar")[1], 2), " variance")) +
   ylab(paste0("PC2: ", round(attr(pca_plot, "percentVar")[2], 2), " variance")) +
-  ggtitle("RNA Samples") +
+  ggtitle("Input Samples") +
   theme_minimal() +
   theme(legend.position = "right",
-        plot.title = element_text(size=20),
-        axis.title.x = element_text(size=16),
-        axis.title.y = element_text(size=16),
-        axis.text.x = element_text(size=14),
-        axis.text.y = element_text(size=14),
-        legend.title = element_text(size=16),
-        legend.text = element_text(size=14))
+        plot.title = element_text(size=20, face="bold"),
+        axis.title.x = element_text(size=16, face="bold"),
+        axis.title.y = element_text(size=16, face="bold"),
+        axis.text.x = element_text(size=14, face="bold"),
+        axis.text.y = element_text(size=14, face="bold"),
+        legend.title = element_text(size=16, face="bold"),
+        legend.text = element_text(size=14, face="bold"))

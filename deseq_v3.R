@@ -43,9 +43,9 @@ comparisons <- list(
   )
 )
 
-comparison <- c(comparisons$HSC_vehicle_vs_GMP_vehicle$RIBO, 
-                comparisons$HSC_vehicle_vs_GMP_vehicle$RNA)
-plot_title <- "HSC_vehicle_vs_GMP_vehicle"
+comparison <- c(comparisons$GMP_Ven_vs_GMP_vehicle$RIBO, 
+                comparisons$GMP_Ven_vs_GMP_vehicle$RNA)
+plot_title <- "GMP_Ven_vs_GMP_vehicle"
 
 ################################################################################
 # Run TE DESeq
@@ -251,10 +251,10 @@ ggplot(logFC, aes(x=Input_logFC, y=Ribo_logFC, color = Group)) +
 # res_temp <- results(dds, name = "PopulationHSC.LibraryTypeRibo")
 # res_temp[res_temp$gene %like% "Alox5", ]
 
-posForwarded <- logFC[logFC$Group == "Forwarded" & logFC$Input_logFC > 0, "Gene"]
-writeLines(posForwarded, paste0("/Users/reikotachibana/Documents/ChungLab/riboseq/output/genes_list/", plot_title, "_posForwarded.txt"))
-negForwarded <- logFC[logFC$Group == "Forwarded" & logFC$Input_logFC < 0, "Gene"]
-writeLines(negForwarded, paste0("/Users/reikotachibana/Documents/ChungLab/riboseq/output/genes_list/", plot_title, "_negForwarded.txt"))
+# posForwarded <- logFC[logFC$Group == "Forwarded" & logFC$Input_logFC > 0, "Gene"]
+# writeLines(posForwarded, paste0("/Users/reikotachibana/Documents/ChungLab/riboseq/output/genes_list/", plot_title, "_posForwarded.txt"))
+# negForwarded <- logFC[logFC$Group == "Forwarded" & logFC$Input_logFC < 0, "Gene"]
+# writeLines(negForwarded, paste0("/Users/reikotachibana/Documents/ChungLab/riboseq/output/genes_list/", plot_title, "_negForwarded.txt"))
 
 table(logFC$Group)
 
